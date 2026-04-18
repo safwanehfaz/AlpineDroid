@@ -53,15 +53,23 @@ RUN git config --global http.sslVerify false && \
 WORKDIR /proot_src/src
 
 # Build proot using the official GNUmakefile.
-# - We set the CROSS_COMPILE variable to point to the correct toolchain for
-#   the target architecture. The makefile will automatically use this to
-#   select the right compiler (e.g., aarch64-linux-gnu-gcc).
+# - We explicitly pass the architecture-defining flag (e.g., -D__aarch64__)
+#   via CFLAGS. This forces the C preprocessor to see the correct architecture
+#   and compile the files correctly, bypassing any faulty auto-detection.
+# - We still set CROSS_COMPILE to ensure the correct toolchain is used.
 # - We use -j$(nproc) to parallelize the build and speed it up.
-RUN export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
+RUN export CFLAGS=$(case "${PROOT_ARCH}" in \
+      "aarch64") echo "-D__aarch64__" ;; \
+      "arm")     echo "-D__ARM_EABI__" ;; \
+    esac) && \
+    export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
       "aarch64") echo "aarch64-linux-gnu-" ;; \
       "arm")     echo "arm-linux-gnueabihf-" ;; \
     esac) && \
-    make -j$(nproc)
+    make -j$(nproc) CC=$(case "${PROOT_ARCH}" in \
+      "aarch64") echo "aarch64-linux-gnu-gcc" ;; \
+      "arm")     echo "arm-linux-gnueabihf-gcc" ;; \
+    esac)
 
 # Install the compiled binaries into a temporary directory for easy copying.
 RUN make install DESTDIR=/proot_install
