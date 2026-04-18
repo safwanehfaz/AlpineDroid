@@ -33,20 +33,11 @@ RUN dpkg --add-architecture i386 && \
 RUN git config --global http.sslVerify false && \
     git clone --depth 1 https://github.com/termux/proot.git /proot_src
 
-WORKDIR /proot_src
+WORKDIR /proot_src/src
 
-# Copy our patch into the source directory and apply it.
-COPY tracee.h.patch .
-RUN patch -p1 < tracee.h.patch
-
-# Copy our custom Makefile into the source directory.
-COPY Makefile .
-
-# Build and install proot using the custom Makefile.
+# Build proot using the official GNUmakefile from the 'src' directory.
 # V=1 enables verbose output for easier debugging.
-# The BUILD_DIR variable tells the Makefile where to place compiled files.
-# The DESTDIR variable specifies the installation directory for 'make install'.
-RUN make V=1 BUILD_DIR=/build_output
+RUN make V=1
 RUN make install DESTDIR=/proot_install
 
 # Stage 2: Create the final bootstrap package
