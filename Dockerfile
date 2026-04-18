@@ -36,7 +36,9 @@ RUN dpkg --add-architecture i386 && \
     pkg-config \
     gawk \
     # Python is used by some build scripts.
-    python3
+    python3 \
+    # Multilib support to allow building both 64-bit and 32-bit binaries in the same environment.
+    gcc-multilib
 
 # Clone the Termux fork of the proot repository, which is optimized for Android environments.
 RUN git clone https://github.com/termux/proot.git /proot_src
