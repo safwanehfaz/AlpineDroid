@@ -40,7 +40,7 @@ RUN apk add --no-cache wget zip
 WORKDIR /build
 
 # Download the Alpine Mini Root Filesystem
-RUN wget "https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/${ARCH}/alpine-minirootfs-3.19.1-${ARCH}.tar.gz" -O alpine-rootfs.tar.gz
+RUN wget "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/${ARCH}/alpine-minirootfs-3.23.4-${ARCH}.tar.gz" -O alpine-rootfs.tar.gz
 
 # Create the rootfs directory
 RUN mkdir -p rootfs
