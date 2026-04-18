@@ -31,6 +31,10 @@ RUN apt-get update && \
     dpkg --add-architecture armhf && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+    gcc-arm-linux-gnueabihf \
+    g++-arm-linux-gnueabihf \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
     build-essential \
     crossbuild-essential-i386 \
     crossbuild-essential-arm64 \
