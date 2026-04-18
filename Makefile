@@ -17,7 +17,7 @@ SRC := src
 
 # Build flags
 CPPFLAGS += -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -I. -I$(SRC)
-CFLAGS   += -Wall -Wextra -O2
+CFLAGS   += -Wall -Wextra -O2 -D__x86_64__
 LDFLAGS  += -ltalloc -Wl,-z,noexecstack
 
 # Verbose output control (V=1 for verbose)
