@@ -11,10 +11,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y \
-    # Essential tools for compiling C/C++ code.
-    build-essential \
-    # Provides a full cross-compilation toolchain for the i386 architecture.
-    crossbuild-essential-i386 \
     # A specific 32-bit C compiler.
     gcc-i686-linux-gnu \
     # The 32-bit version of the standard C development library.
