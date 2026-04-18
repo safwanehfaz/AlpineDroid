@@ -3,8 +3,12 @@
 FROM debian:latest AS proot-builder
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y \
     build-essential \
+    gcc-i686-linux-gnu \
+    libc6-dev:i386 \
     git \
     libtalloc-dev \
     libarchive-dev \
@@ -19,12 +23,12 @@ RUN apt-get update && apt-get install -y \
     gawk
 
 # Clone the proot repository
-RUN git clone https://github.com/proot-me/proot.git /proot_src
+RUN git clone https://gitlab.com/proot/termux-proot /proot_src
 
 WORKDIR /proot_src
 
 # Build proot using the correct two-step process
-RUN make -C src loader.elf build.h
+RUN make -C src loader.elf loader-m32.elf build.h
 RUN make -C src proot
 RUN make -C src install PREFIX=/usr DESTDIR=/proot_install
 
