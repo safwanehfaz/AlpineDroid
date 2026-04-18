@@ -63,18 +63,23 @@ WORKDIR /proot_src/src
 #   and compile the files correctly, bypassing any faulty auto-detection.
 # - We still set CROSS_COMPILE to ensure the correct toolchain is used.
 # - We use -j$(nproc) to parallelize the build and speed it up.
-RUN export CFLAGS=$(case "${PROOT_ARCH}" in \
-      "aarch64") echo "-D__aarch64__" ;; \
-      "arm")     echo "-D__arm__ -D__ARM_EABI__" ;; \
-    esac) && \
-    export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
+RUN export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
       "aarch64") echo "aarch64-linux-gnu-" ;; \
       "arm")     echo "arm-linux-gnueabihf-" ;; \
     esac) && \
-    make -j$(nproc) CC=$(case "${PROOT_ARCH}" in \
-      "aarch64") echo "aarch64-linux-gnu-gcc" ;; \
-      "arm")     echo "arm-linux-gnueabihf-gcc" ;; \
-    esac)
+    export CC="${CROSS_COMPILE}gcc" && \
+    export PKG_CONFIG_PATH=$(case "${PROOT_ARCH}" in \
+      "aarch64") echo "/usr/lib/aarch64-linux-gnu/pkgconfig" ;; \
+      "arm")     echo "/usr/lib/arm-linux-gnueabihf/pkgconfig" ;; \
+    esac) && \
+    export CFLAGS=$(case "${PROOT_ARCH}" in \
+      "aarch64") echo "-D__aarch64__" ;; \
+      "arm")     echo "-D__arm__ -D__ARM_EABI__ -march=armv7-a" ;; \
+    esac) && \
+    # The GNUmakefile in the proot source directory is designed to handle cross-compilation
+    # when the appropriate environment variables are set. By setting CROSS_COMPILE and CFLAGS,
+    # we ensure that the build process compiles the source code for the correct architecture.
+    make -j$(nproc)
 
 # Install the compiled binaries into a temporary directory for easy copying.
 RUN make install DESTDIR=/proot_install
