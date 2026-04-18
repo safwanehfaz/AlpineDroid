@@ -37,7 +37,7 @@ WORKDIR /proot_src/src
 
 # Build proot using the official GNUmakefile from the 'src' directory.
 # V=1 enables verbose output for easier debugging.
-RUN make V=1
+RUN make V=1 CFLAGS+="-D__x86_64__"
 RUN make install DESTDIR=/proot_install
 
 # Stage 2: Create the final bootstrap package
