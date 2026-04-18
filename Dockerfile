@@ -1,6 +1,6 @@
 # Use a multi-stage build to keep the final image small and clean
 # Stage 1: Build a static proot binary
-FROM debian:bullseye as proot-builder
+FROM debian:latest as proot-builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
