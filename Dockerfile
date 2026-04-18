@@ -12,12 +12,12 @@ RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
+    crossbuild-essential-i386 \
     git \
     python3 \
     pkg-config \
     libtalloc-dev \
     libarchive-dev \
-    gcc-multilib \
     bison \
     flex \
     autoconf \
