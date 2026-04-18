@@ -33,6 +33,7 @@ docker buildx use mybuilder
 # Build the Docker image using buildx, passing the architecture as a build argument
 # We use --load to make the image available to the local docker daemon for the next step
 docker buildx build \
+    --no-cache \
     --platform $PLATFORM \
     --build-arg "ARCH=${ARCH}" \
     --build-arg "PROOT_ARCH=${PROOT_ARCH}" \
