@@ -23,7 +23,7 @@ WORKDIR /proot_src/src
 
 # Define the list of source files for proot.
 # This bypasses the complex GNUmakefile and gives us direct control.
-ENV PROOT_SOURCES \
+ENV PROOT_SOURCES=" \
     cli/cli.c \
     cli/proot.c \
     cli/note.c \
@@ -88,10 +88,13 @@ ENV PROOT_SOURCES \
     extension/sysvipc/sysvipc_sem.c \
     extension/sysvipc/sysvipc_shm.c \
     extension/link2symlink/link2symlink.c \
-    extension/fix_symlink_size/fix_symlink_size.c
+    extension/fix_symlink_size/fix_symlink_size.c"
+
+# Generate the script.h header file required by the loader.
+RUN gcc -o loader/script loader/script.c && ./loader/script > loader/script.h
 
 # Compile the 32-bit loader directly.
-RUN i686-linux-gnu-gcc -static -fPIC -ffreestanding -m32 \
+RUN i686-linux-gnu-gcc -static -fPIC -ffreestanding \
     -o loader-m32 loader/loader.c loader/assembly.S \
     -Wl,-Ttext=0x10000,--rosegment,-z,noexecstack
 
