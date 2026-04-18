@@ -24,7 +24,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # - We add the i386 architecture to support the 32-bit loader required by termux-proot.
 # - build-essential, git, and pkg-config are standard build tools.
 # - libtalloc-dev is a required library for proot, installed for both architectures.
-RUN dpkg --add-architecture i386 && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends dpkg-dev && \
+    dpkg --add-architecture i386 && \
+    dpkg --add-architecture arm64 && \
+    dpkg --add-architecture armhf && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -35,9 +39,9 @@ RUN dpkg --add-architecture i386 && \
     pkg-config \
     libtalloc-dev \
     libtalloc-dev:i386 \
-    # nproc is used for parallel builds
+    libtalloc-dev:arm64 \
+    libtalloc-dev:armhf \
     procps && \
-    # Clean up apt cache to keep the layer small.
     rm -rf /var/lib/apt/lists/*
 
 # Clone the termux/proot repository. We use a shallow clone (--depth=1)
