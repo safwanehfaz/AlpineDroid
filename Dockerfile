@@ -16,9 +16,7 @@ RUN dpkg --add-architecture i386 && \
     python3 \
     pkg-config \
     libtalloc-dev \
-    libtalloc-dev:i386 \
     libarchive-dev \
-    libarchive-dev:i386 \
     gcc-multilib \
     bison \
     flex \
