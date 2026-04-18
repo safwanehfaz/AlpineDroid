@@ -2,6 +2,9 @@
 # Stage 1: Build a static proot binary
 FROM debian:latest AS proot-builder
 
+# Set the frontend to noninteractive to avoid installation prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install build dependencies
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
