@@ -14,7 +14,7 @@ jobs:
         # Define the architectures you want to build for
         include:
           - arch: aarch64
-          - arch: armv7l
+          - arch: armv7
 
     steps:
     - name: Checkout repository
