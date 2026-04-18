@@ -31,7 +31,7 @@ RUN dpkg --add-architecture i386 && \
 
 # Disable SSL verification for git to avoid issues with cloning the repository in environments where SSL certificates may not be properly configured (e.g., CI environments).
 RUN git config --global http.sslVerify false && \
-    git clone https://github.com/termux/proot.git /proot_src
+    git clone --depth 1 https://github.com/termux/proot.git /proot_src
 
 # Copy our custom Makefile into the source directory.
 COPY Makefile /proot_src/Makefile
