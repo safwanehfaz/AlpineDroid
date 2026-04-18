@@ -74,12 +74,11 @@ RUN export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
     esac) && \
     export CFLAGS=$(case "${PROOT_ARCH}" in \
       "aarch64") echo "-D__aarch64__" ;; \
-      "arm")     echo "-D__arm__ -D__ARM_EABI__ -march=armv7-a" ;; \
+      # For 32-bit ARM, we need to specify the architecture and floating-point options explicitly.
+      "arm")     echo "-D__arm__ -D__ARM_EABI__ -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3-d16" ;; \
     esac) && \
-    # The GNUmakefile in the proot source directory is designed to handle cross-compilation
-    # when the appropriate environment variables are set. By setting CROSS_COMPILE and CFLAGS,
-    # we ensure that the build process compiles the source code for the correct architecture.
-    make -j$(nproc)
+    # The 'make' command will read the GNUmakefile and use the provided environment variables
+    make -j$(nproc) PROOT_ARCH=${PROOT_ARCH}
 
 # Install the compiled binaries into a temporary directory for easy copying.
 RUN make install DESTDIR=/proot_install
