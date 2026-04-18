@@ -29,6 +29,8 @@ RUN dpkg --add-architecture i386 && \
     apt-get install -y --no-install-recommends \
     build-essential \
     crossbuild-essential-i386 \
+    crossbuild-essential-arm64 \
+    crossbuild-essential-armhf \
     git \
     pkg-config \
     libtalloc-dev \
@@ -47,10 +49,15 @@ RUN git config --global http.sslVerify false && \
 WORKDIR /proot_src/src
 
 # Build proot using the official GNUmakefile.
-# - We pass the PROOT_ARCH build argument to ensure the build is configured
-#   for the correct target architecture.
+# - We set the CROSS_COMPILE variable to point to the correct toolchain for
+#   the target architecture. The makefile will automatically use this to
+#   select the right compiler (e.g., aarch64-linux-gnu-gcc).
 # - We use -j$(nproc) to parallelize the build and speed it up.
-RUN make -j$(nproc) ARCH=${PROOT_ARCH}
+RUN export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
+      "aarch64") echo "aarch64-linux-gnu-" ;; \
+      "arm")     echo "arm-linux-gnueabihf-" ;; \
+    esac) && \
+    make -j$(nproc)
 
 # Install the compiled binaries into a temporary directory for easy copying.
 RUN make install DESTDIR=/proot_install
