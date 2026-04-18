@@ -33,10 +33,14 @@ RUN dpkg --add-architecture i386 && \
 RUN git config --global http.sslVerify false && \
     git clone --depth 1 https://github.com/termux/proot.git /proot_src
 
-# Copy our custom Makefile into the source directory.
-COPY Makefile /proot_src/Makefile
-
 WORKDIR /proot_src
+
+# Copy our patch into the source directory and apply it.
+COPY tracee.h.patch .
+RUN patch -p1 < tracee.h.patch
+
+# Copy our custom Makefile into the source directory.
+COPY Makefile .
 
 # Build and install proot using the custom Makefile.
 # V=1 enables verbose output for easier debugging.
