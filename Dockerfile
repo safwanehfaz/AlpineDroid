@@ -31,7 +31,7 @@ RUN git clone https://github.com/termux/proot.git /proot_src
 WORKDIR /proot_src
 
 # Build proot using the correct two-step process
-RUN make -C src loader.elf loader-m32.elf build.h
+RUN make -C src loader.elf build.h
 RUN make -C src proot
 RUN make -C src install PREFIX=/usr DESTDIR=/proot_install
 
