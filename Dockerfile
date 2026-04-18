@@ -23,6 +23,9 @@ RUN dpkg --add-architecture i386 && \
     git \
     # A required dependency for proot, installed for both architectures.
     libtalloc-dev \
+    # The 32-bit version of the talloc library, needed for building the 32-bit loader.
+    libtalloc-dev:i386 \
+
     # Another required dependency for proot, installed for both architectures.
     libarchive-dev \
     # Tools required for the autogen/configure process.
