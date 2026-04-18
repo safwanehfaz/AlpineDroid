@@ -18,7 +18,38 @@ RUN apt-get update && apt-get install -y \
     gawk
 
 # Clone the proot repository
+RUN git clone https://github.com/pr# Use a multi-stage build to keep the final image small and clean
+# Stage 1: Build a static proot binary
+FROM debian:latest as proot-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    libtalloc-dev \
+    libarchive-dev \
+    autoconf \
+    bison \
+    flex \
+    texinfo \
+    help2man \
+    libtool \
+    libtool-bin \
+    pkg-config \
+    gawk
+
+# Clone the proot repository
 RUN git clone https://github.com/proot-me/proot.git /proot_src
+
+WORKDIR /proot_src
+
+# Build proot using the correct two-step process
+RUN make -C src loader.elf build.h
+RUN make -C src proot
+RUN make -C src install PREFIX=/usr DESTDIR=/proot_install
+
+# Stage 2: Create the final bootstrap package
+# ... (rest of the file is unchanged)oot-me/proot.git /proot_src
 
 WORKDIR /proot_src
 
