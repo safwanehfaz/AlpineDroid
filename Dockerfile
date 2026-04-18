@@ -1,136 +1,93 @@
-# Stage 1: Build a static proot binary
+# AlpineDroid Dockerfile
+#
+# This Dockerfile builds a bootstrap environment for running Alpine Linux on Android.
+# It uses a multi-stage build to compile a static proot binary and package it
+# with an Alpine Linux minirootfs.
+
+# ==============================================================================
+# Stage 1: The Builder
+#
+# This stage sets up a Debian-based build environment, compiles proot,
+# and prepares the necessary binaries for the final package.
+# ==============================================================================
 FROM debian:latest AS proot-builder
 
+# PROOT_ARCH is the critical build argument that tells the makefile which
+# architecture we are cross-compiling for (e.g., 'aarch64', 'arm').
+# This is passed in from the build.sh script.
+ARG PROOT_ARCH
+
+# Set frontend to noninteractive to prevent apt-get from hanging on user prompts.
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install only the essential dependencies for building proot.
+# Install all necessary build dependencies.
+# - We add the i386 architecture to support the 32-bit loader required by termux-proot.
+# - build-essential, git, and pkg-config are standard build tools.
+# - libtalloc-dev is a required library for proot, installed for both architectures.
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
-    gcc-i686-linux-gnu \
-    libc6-dev:i386 \
+    crossbuild-essential-i386 \
     git \
+    pkg-config \
     libtalloc-dev \
-    libtalloc-dev:i386 && \
+    libtalloc-dev:i386 \
+    # nproc is used for parallel builds
+    procps && \
+    # Clean up apt cache to keep the layer small.
     rm -rf /var/lib/apt/lists/*
 
-# Clone the proot source code.
+# Clone the termux/proot repository. We use a shallow clone (--depth=1)
+# because we only need the latest version of the source code.
 RUN git config --global http.sslVerify false && \
     git clone https://github.com/termux/proot.git /proot_src
 
+# Set the working directory to the 'src' folder, which contains the GNUmakefile.
 WORKDIR /proot_src/src
 
-# Define the list of source files for proot.
-# This bypasses the complex GNUmakefile and gives us direct control.
-ENV PROOT_SOURCES=" \
-    cli/cli.c \
-    cli/proot.c \
-    cli/note.c \
-    execve/enter.c \
-    execve/exit.c \
-    execve/shebang.c \
-    execve/elf.c \
-    execve/ldso.c \
-    execve/auxv.c \
-    execve/aoxp.c \
-    path/binding.c \
-    path/glue.c \
-    path/canon.c \
-    path/f2fs-bug.c \
-    path/path.c \
-    path/proc.c \
-    path/temp.c \
-    syscall/seccomp.c \
-    syscall/syscall.c \
-    syscall/chain.c \
-    syscall/enter.c \
-    syscall/exit.c \
-    syscall/sysnum.c \
-    syscall/socket.c \
-    syscall/heap.c \
-    syscall/rlimit.c \
-    tracee/tracee.c \
-    tracee/mem.c \
-    tracee/reg.c \
-    tracee/event.c \
-    tracee/seccomp.c \
-    tracee/statx.c \
-    ptrace/ptrace.c \
-    ptrace/user.c \
-    ptrace/wait.c \
-    extension/extension.c \
-    extension/ashmem_memfd/ashmem_memfd.c \
-    extension/kompat/kompat.c \
-    extension/fake_id0/chown.c \
-    extension/fake_id0/chroot.c \
-    extension/fake_id0/getsockopt.c \
-    extension/fake_id0/sendmsg.c \
-    extension/fake_id0/socket.c \
-    extension/fake_id0/open.c \
-    extension/fake_id0/unlink.c \
-    extension/fake_id0/rename.c \
-    extension/fake_id0/chmod.c \
-    extension/fake_id0/utimensat.c \
-    extension/fake_id0/access.c \
-    extension/fake_id0/exec.c \
-    extension/fake_id0/link.c \
-    extension/fake_id0/symlink.c \
-    extension/fake_id0/mk.c \
-    extension/fake_id0/stat.c \
-    extension/fake_id0/helper_functions.c \
-    extension/fake_id0/fake_id0.c \
-    extension/hidden_files/hidden_files.c \
-    extension/mountinfo/mountinfo.c \
-    extension/port_switch/port_switch.c \
-    extension/sysvipc/sysvipc.c \
-    extension/sysvipc/sysvipc_msg.c \
-    extension/sysvipc/sysvipc_sem.c \
-    extension/sysvipc/sysvipc_shm.c \
-    extension/link2symlink/link2symlink.c \
-    extension/fix_symlink_size/fix_symlink_size.c"
+# Build proot using the official GNUmakefile.
+# - We pass the PROOT_ARCH build argument to ensure the build is configured
+#   for the correct target architecture.
+# - We use -j$(nproc) to parallelize the build and speed it up.
+RUN make -j$(nproc) ARCH=${PROOT_ARCH}
 
-# Generate the script.h header file required by the loader.
-RUN gcc -o loader/script loader/script.c && ./loader/script > loader/script.h
+# Install the compiled binaries into a temporary directory for easy copying.
+RUN make install DESTDIR=/proot_install
 
-# Compile the 32-bit loader directly.
-RUN i686-linux-gnu-gcc -static -fPIC -ffreestanding \
-    -o loader-m32 loader/loader.c loader/assembly.S \
-    -Wl,-Ttext=0x10000,--rosegment,-z,noexecstack
-
-# Compile the main proot binary directly, linking all sources.
-# This command explicitly defines the architecture and includes all necessary flags.
-RUN gcc -o proot $PROOT_SOURCES \
-    -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D__x86_64__ \
-    -I. -I./ \
-    -Wall -Wextra -O2 \
-    -ltalloc -Wl,-z,noexecstack
-
-# Create an installation directory.
-RUN mkdir -p /proot_install/usr/bin
-
-# Copy the compiled binaries to the installation directory.
-RUN cp proot /proot_install/usr/bin/proot
-RUN cp loader-m32 /proot_install/usr/bin/loader-m32
-
-# Stage 2: Create the final bootstrap package
+# ==============================================================================
+# Stage 2: The Final Package
+#
+# This stage takes the compiled binaries from the builder stage and packages
+# them with a minimal Alpine Linux root filesystem into a zip archive.
+# ==============================================================================
 FROM alpine:latest
 
+# ARCH is passed from the build.sh script to download the correct rootfs.
 ARG ARCH
 
+# Install tools needed for packaging the final artifact.
 RUN apk add --no-cache wget zip
 
 WORKDIR /build
 
+# Download the Alpine Linux Mini Root Filesystem for the target architecture.
+# Note: Using a specific version (e.g., v3.15) for reproducibility.
 RUN wget "https://dl-cdn.alpinelinux.org/alpine/v3.15/releases/${ARCH}/alpine-minirootfs-3.15.0-${ARCH}.tar.gz" -O alpine-rootfs.tar.gz
 
+# Create and extract the root filesystem.
 RUN mkdir -p rootfs
 RUN tar -xzf alpine-rootfs.tar.gz -C rootfs
 
-# Copy the compiled proot and loader binaries from the builder stage.
-COPY --from=proot-builder /proot_install/usr/bin/proot /build/rootfs/usr/bin/proot
-COPY --from=proot-builder /proot_install/usr/bin/loader-m32 /build/rootfs/usr/bin/loader-m32
+# Copy the compiled proot binary and the 32-bit loader from the builder stage
+# into the correct location in our new rootfs.
+COPY --from=proot-builder /proot_install/bin/proot /build/rootfs/usr/bin/proot
+COPY --from=proot-builder /proot_install/bin/loader /build/rootfs/usr/bin/loader
+COPY --from=proot-builder /proot_install/bin/loader-m32 /build/rootfs/usr/bin/loader-m32
 
+# Create the final bootstrap.zip archive containing the complete root filesystem.
 RUN cd rootfs && zip -r /bootstrap.zip .
 
+# The final command is just a placeholder; the purpose of this stage is to
+# produce the bootstrap.zip artifact, which is then extracted by build.sh.
 CMD ["echo", "This image was used to build the bootstrap.zip artifact."]
