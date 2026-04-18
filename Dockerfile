@@ -10,31 +10,23 @@ ENV DEBIAN_FRONTEND=noninteractive
 # This is required because the Termux version of proot builds a 32-bit loader (`loader-m32`).
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y \
-    # A specific 32-bit C compiler.
-    gcc-i686-linux-gnu \
-    # The 32-bit version of the standard C development library.
-    libc6-dev:i386 \
-    # For cloning the source code from GitHub.
+    apt-get install -y --no-install-recommends \
+    build-essential \
     git \
-    # A required dependency for proot, installed for both architectures.
+    python3 \
+    pkg-config \
     libtalloc-dev \
-    # Another required dependency for proot, installed for both architectures.
+    libtalloc-dev:i386 \
     libarchive-dev \
-    # Tools required for the autogen/configure process.
-    autoconf \
+    libarchive-dev:i386 \
+    gcc-multilib \
     bison \
     flex \
-    texinfo \
-    help2man \
+    autoconf \
     libtool \
     libtool-bin \
-    pkg-config \
-    gawk \
-    # Python is used by some build scripts.
-    python3 \
-    # Multilib support to allow building both 64-bit and 32-bit binaries in the same environment.
-    gcc-multilib
+    gawk && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clone the Termux fork of the proot repository, which is optimized for Android environments.
 RUN git clone https://github.com/termux/proot.git /proot_src
