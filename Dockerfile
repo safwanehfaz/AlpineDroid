@@ -1,73 +1,132 @@
-# Use a multi-stage build to keep the final image small and clean
 # Stage 1: Build a static proot binary
-# Use Debian as the build environment because it has a rich set of pre-compiled development tools.
 FROM debian:latest AS proot-builder
 
-# Set the frontend to noninteractive to avoid installation prompts during package installation.
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies for both 64-bit (native) and 32-bit (i386) architectures.
-# This is required because the Termux version of proot builds a 32-bit loader (`loader-m32`).
+# Install only the essential dependencies for building proot.
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates \
-    gnupg \
     build-essential \
-    crossbuild-essential-i386 \
+    gcc-i686-linux-gnu \
+    libc6-dev:i386 \
     git \
-    python3 \
-    pkg-config \
     libtalloc-dev \
-    libarchive-dev \
-    bison \
-    flex \
-    autoconf \
-    libtool \
-    libtool-bin \
-    gawk && \
+    libtalloc-dev:i386 && \
     rm -rf /var/lib/apt/lists/*
 
-
-# Disable SSL verification for git to avoid issues with cloning the repository in environments where SSL certificates may not be properly configured (e.g., CI environments).
-RUN git config --global http.sslVerify false && \
-    git clone --depth 1 https://github.com/termux/proot.git /proot_src
+# Clone the proot source code.
+RUN git clone --depth=1 https://github.com/termux/proot.git /proot_src
 
 WORKDIR /proot_src/src
 
-# Build proot using the official GNUmakefile from the 'src' directory.
-# V=1 enables verbose output for easier debugging.
-RUN make V=1 CFLAGS+="-D__x86_64__"
-RUN make install DESTDIR=/proot_install
+# Define the list of source files for proot.
+# This bypasses the complex GNUmakefile and gives us direct control.
+ENV PROOT_SOURCES \
+    cli/cli.c \
+    cli/proot.c \
+    cli/note.c \
+    execve/enter.c \
+    execve/exit.c \
+    execve/shebang.c \
+    execve/elf.c \
+    execve/ldso.c \
+    execve/auxv.c \
+    execve/aoxp.c \
+    path/binding.c \
+    path/glue.c \
+    path/canon.c \
+    path/f2fs-bug.c \
+    path/path.c \
+    path/proc.c \
+    path/temp.c \
+    syscall/seccomp.c \
+    syscall/syscall.c \
+    syscall/chain.c \
+    syscall/enter.c \
+    syscall/exit.c \
+    syscall/sysnum.c \
+    syscall/socket.c \
+    syscall/heap.c \
+    syscall/rlimit.c \
+    tracee/tracee.c \
+    tracee/mem.c \
+    tracee/reg.c \
+    tracee/event.c \
+    tracee/seccomp.c \
+    tracee/statx.c \
+    ptrace/ptrace.c \
+    ptrace/user.c \
+    ptrace/wait.c \
+    extension/extension.c \
+    extension/ashmem_memfd/ashmem_memfd.c \
+    extension/kompat/kompat.c \
+    extension/fake_id0/chown.c \
+    extension/fake_id0/chroot.c \
+    extension/fake_id0/getsockopt.c \
+    extension/fake_id0/sendmsg.c \
+    extension/fake_id0/socket.c \
+    extension/fake_id0/open.c \
+    extension/fake_id0/unlink.c \
+    extension/fake_id0/rename.c \
+    extension/fake_id0/chmod.c \
+    extension/fake_id0/utimensat.c \
+    extension/fake_id0/access.c \
+    extension/fake_id0/exec.c \
+    extension/fake_id0/link.c \
+    extension/fake_id0/symlink.c \
+    extension/fake_id0/mk.c \
+    extension/fake_id0/stat.c \
+    extension/fake_id0/helper_functions.c \
+    extension/fake_id0/fake_id0.c \
+    extension/hidden_files/hidden_files.c \
+    extension/mountinfo/mountinfo.c \
+    extension/port_switch/port_switch.c \
+    extension/sysvipc/sysvipc.c \
+    extension/sysvipc/sysvipc_msg.c \
+    extension/sysvipc/sysvipc_sem.c \
+    extension/sysvipc/sysvipc_shm.c \
+    extension/link2symlink/link2symlink.c \
+    extension/fix_symlink_size/fix_symlink_size.c
+
+# Compile the 32-bit loader directly.
+RUN i686-linux-gnu-gcc -static -fPIC -ffreestanding -m32 \
+    -o loader-m32 loader/loader.c loader/assembly.S \
+    -Wl,-Ttext=0x10000,--rosegment,-z,noexecstack
+
+# Compile the main proot binary directly, linking all sources.
+# This command explicitly defines the architecture and includes all necessary flags.
+RUN gcc -o proot $PROOT_SOURCES \
+    -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D__x86_64__ \
+    -I. -I./ \
+    -Wall -Wextra -O2 \
+    -ltalloc -Wl,-z,noexecstack
+
+# Create an installation directory.
+RUN mkdir -p /proot_install/usr/bin
+
+# Copy the compiled binaries to the installation directory.
+RUN cp proot /proot_install/usr/bin/proot
+RUN cp loader-m32 /proot_install/usr/bin/loader-m32
 
 # Stage 2: Create the final bootstrap package
-# Use a minimal Alpine image for the final packaging stage.
 FROM alpine:latest
 
-# Arguments passed from the build script to specify the target architecture.
 ARG ARCH
-ARG PROOT_ARCH
 
-# Install tools needed for packaging the final artifact.
 RUN apk add --no-cache wget zip
 
 WORKDIR /build
 
-# Download the Alpine Mini Root Filesystem for the target architecture.
-RUN wget "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/${ARCH}/alpine-minirootfs-3.23.4-${ARCH}.tar.gz" -O alpine-rootfs.tar.gz
+RUN wget "https://dl-cdn.alpinelinux.org/alpine/v3.15/releases/${ARCH}/alpine-minirootfs-3.15.0-${ARCH}.tar.gz" -O alpine-rootfs.tar.gz
 
-# Create the directory to hold the filesystem.
 RUN mkdir -p rootfs
-
-# Extract the downloaded rootfs into the directory.
 RUN tar -xzf alpine-rootfs.tar.gz -C rootfs
 
-# Copy ONLY the compiled proot binary from the first build stage into the Alpine rootfs.
-# This is the magic of multi-stage builds; none of the Debian build environment is included.
-COPY --from=proot-builder /proot_install/bin/proot /build/rootfs/usr/bin/proot
+# Copy the compiled proot and loader binaries from the builder stage.
+COPY --from=proot-builder /proot_install/usr/bin/proot /build/rootfs/usr/bin/proot
+COPY --from=proot-builder /proot_install/usr/bin/loader-m32 /build/rootfs/usr/bin/loader-m32
 
-# Create the final bootstrap.zip archive containing the complete root filesystem.
 RUN cd rootfs && zip -r /bootstrap.zip .
 
-# The final command is just a placeholder; the purpose of this stage is to produce the bootstrap.zip artifact.
 CMD ["echo", "This image was used to build the bootstrap.zip artifact."]
