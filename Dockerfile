@@ -23,10 +23,9 @@ RUN git clone https://github.com/proot-me/proot.git /proot_src
 WORKDIR /proot_src
 
 # Build proot
-RUN ./autogen.sh
-RUN ./configure --prefix=/usr --disable-python-binding
+WORKDIR /proot_src/src
 RUN make -j$(nproc)
-RUN make install DESTDIR=/proot_install
+RUN make install PREFIX=/usr DESTDIR=/proot_install
 
 # Stage 2: Create the final bootstrap package
 FROM alpine:latest
