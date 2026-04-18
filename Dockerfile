@@ -23,7 +23,7 @@ RUN dpkg --add-architecture i386 && \
     gawk
 
 # Clone the proot repository
-RUN git clone https://gitlab.com/proot/termux-proot /proot_src
+RUN git clone https://github.com/termux/proot.git /proot_src
 
 WORKDIR /proot_src
 
