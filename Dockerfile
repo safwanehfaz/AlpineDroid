@@ -55,4 +55,4 @@ COPY --from=proot-builder /proot_install/usr/bin/proot /build/rootfs/usr/bin/pro
 RUN cd rootfs && zip -r /bootstrap.zip .
 
 # The final image doesn't need to contain anything, we just need to build the zip
-CMD echo "This image was used to build the bootstrap.zip artifact."
+CMD ["echo", "This image was used to build the bootstrap.zip artifact."]
