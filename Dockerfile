@@ -23,10 +23,8 @@ RUN dpkg --add-architecture i386 && \
     git \
     # A required dependency for proot, installed for both architectures.
     libtalloc-dev \
-    libtalloc-dev:i386 \
     # Another required dependency for proot, installed for both architectures.
     libarchive-dev \
-    libarchive-dev:i386 \
     # Tools required for the autogen/configure process.
     autoconf \
     bison \
