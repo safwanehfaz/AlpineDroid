@@ -10,7 +10,7 @@ PROOT_ARCH=""
 if [ "$ARCH" = "aarch64" ]; then
     PLATFORM="linux/arm64"
     PROOT_ARCH="aarch64"
-elif [ "$ARCH" = "armv7l" ]; then
+elif [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv7" ]; then
     PLATFORM="linux/arm/v7"
     PROOT_ARCH="arm"
 else
