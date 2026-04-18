@@ -39,6 +39,7 @@ RUN apt-get update && \
     crossbuild-essential-i386 \
     crossbuild-essential-arm64 \
     crossbuild-essential-armhf \
+    linux-libc-dev \
     git \
     pkg-config \
     libtalloc-dev \
@@ -64,7 +65,7 @@ WORKDIR /proot_src/src
 # - We use -j$(nproc) to parallelize the build and speed it up.
 RUN export CFLAGS=$(case "${PROOT_ARCH}" in \
       "aarch64") echo "-D__aarch64__" ;; \
-      "arm")     echo "-D__ARM_EABI__" ;; \
+      "arm")     echo "-D__arm__ -D__ARM_EABI__" ;; \
     esac) && \
     export CROSS_COMPILE=$(case "${PROOT_ARCH}" in \
       "aarch64") echo "aarch64-linux-gnu-" ;; \
