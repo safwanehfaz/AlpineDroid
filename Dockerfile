@@ -11,6 +11,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+    ca-certificates \
+    gnupg \
     build-essential \
     crossbuild-essential-i386 \
     git \
@@ -26,8 +28,10 @@ RUN dpkg --add-architecture i386 && \
     gawk && \
     rm -rf /var/lib/apt/lists/*
 
-# Clone the Termux fork of the proot repository, which is optimized for Android environments.
-RUN git clone https://github.com/termux/proot.git /proot_src
+
+# Disable SSL verification for git to avoid issues with cloning the repository in environments where SSL certificates may not be properly configured (e.g., CI environments).
+RUN git config --global http.sslVerify false && \
+    git clone https://github.com/termux/proot.git /proot_src
 
 # Copy our custom Makefile into the source directory.
 COPY Makefile /proot_src/Makefile
