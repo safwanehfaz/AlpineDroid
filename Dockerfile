@@ -10,11 +10,14 @@ RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y \
     build-essential \
+    crossbuild-essential-i386 \
     gcc-i686-linux-gnu \
     libc6-dev:i386 \
     git \
     libtalloc-dev \
+    libtalloc-dev:i386 \
     libarchive-dev \
+    libarchive-dev:i386 \
     autoconf \
     bison \
     flex \
@@ -23,7 +26,8 @@ RUN dpkg --add-architecture i386 && \
     libtool \
     libtool-bin \
     pkg-config \
-    gawk
+    gawk \
+    python3
 
 # Clone the proot repository
 RUN git clone https://github.com/termux/proot.git /proot_src
@@ -31,9 +35,9 @@ RUN git clone https://github.com/termux/proot.git /proot_src
 WORKDIR /proot_src
 
 # Build proot using the correct two-step process
-RUN make -C src loader.elf build.h V=1
-RUN ls -R 
-RUN make -C src proot
+RUN make -C src build.h V=1
+RUN make -C src loader/loader loader/loader-m32 V=1
+RUN make -C src proot V=1
 RUN make -C src install PREFIX=/usr DESTDIR=/proot_install
 
 # Stage 2: Create the final bootstrap package
