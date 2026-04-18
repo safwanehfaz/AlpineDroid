@@ -114,7 +114,7 @@ build.h:
 	$(Q)echo "/* This file is auto-generated, edit at your own risk.  */" > $@
 	$(Q)echo "#ifndef BUILD_H" >> $@
 	$(Q)echo "#define BUILD_H" >> $@
-	$(Q)sh -c 'VERSION=$$(git describe --tags --dirty --abbrev=8 --always 2>/dev/null); if [ ! -z "$${VERSION}" ]; then printf "\#undef VERSION\n\#define VERSION \"$${VERSION}\"\n"; fi;' >> $@
+	$(Q)sh -c 'VERSION=$$(git describe --tags --dirty --abbrev=8 --always 2>/dev/null); if [ ! -z "$${VERSION}" ]; then printf "#undef VERSION\n#define VERSION \"$${VERSION}\"\n"; fi;' >> $@
 	$(Q)echo "#endif /* BUILD_H */" >> $@
 
 # --- Main proot binary ---
