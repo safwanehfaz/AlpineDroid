@@ -3,8 +3,12 @@
 FROM debian:latest AS proot-builder
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y \
     build-essential \
+    gcc-i686-linux-gnu \
+    libc6-dev:i386 \
     git \
     libtalloc-dev \
     libarchive-dev \
