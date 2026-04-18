@@ -16,7 +16,8 @@ RUN dpkg --add-architecture i386 && \
     rm -rf /var/lib/apt/lists/*
 
 # Clone the proot source code.
-RUN git clone --depth=1 https://github.com/termux/proot.git /proot_src
+RUN git config --global http.sslVerify false && \
+    git clone https://github.com/termux/proot.git /proot_src
 
 WORKDIR /proot_src/src
 
